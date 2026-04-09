@@ -1,0 +1,17 @@
+flowchart LR
+    raw[("articles.raw\n{url, text}")]
+    req["A2A TaskRequest\n{id, input.text}"]
+    resp["A2A TaskResponse\n{id, status, result}"]
+    agent["Specialist Agent\nSummarizer / Classifier"]
+    ev[("agent.events\n{agent, task_id, result}")]
+    enriched[("articles.enriched\n{url, summary,\nword_count, tags}")]
+
+    raw -->|Orchestrator consumes| req
+    req -->|POST /tasks| agent
+    agent -->|returns| resp
+    agent -->|PUBLISH audit| ev
+    resp -->|Orchestrator merges| enriched
+
+    style raw fill:#fff3e0,stroke:#f57c00
+    style enriched fill:#e8f5e9,stroke:#388e3c
+    style ev fill:#fce4ec,stroke:#c62828

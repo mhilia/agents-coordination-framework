@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> submitted : POST /tasks received
+    submitted --> working : processing started
+    working --> completed : result ready
+    working --> failed : error occurred
+    completed --> [*]
+    failed --> [*]

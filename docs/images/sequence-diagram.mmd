@@ -1,0 +1,21 @@
+sequenceDiagram
+    actor T as trigger.py
+    participant KR as Kafka<br/>articles.raw
+    participant O as Orchestrator
+    participant S as Summarizer<br/>:8001
+    participant C as Classifier<br/>:8002
+    participant KE as Kafka<br/>agent.events
+    participant KN as Kafka<br/>articles.enriched
+
+    T->>KR: PUBLISH {url, text}
+    KR->>O: CONSUME message
+
+    O->>S: A2A POST /tasks {id, input.text}
+    S->>KE: PUBLISH {agent, task_id, status, result}
+    S-->>O: TaskResponse {summary, word_count}
+
+    O->>C: A2A POST /tasks {id, input.text}
+    C->>KE: PUBLISH {agent, task_id, status, result}
+    C-->>O: TaskResponse {tags}
+
+    O->>KN: PUBLISH {url, summary, word_count, tags}

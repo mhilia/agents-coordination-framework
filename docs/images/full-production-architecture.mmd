@@ -1,0 +1,90 @@
+flowchart LR
+    client["Client"]
+
+    subgraph ingress["Entry Point"]
+        orch["Orchestrator\nA2A :443\nKafka consumer"]
+    end
+
+    subgraph kafka_cluster["Kafka Cluster"]
+        t_tasks[("agent.tasks.X")]
+        t_results[("agent.results")]
+        t_retry[("agent.tasks.X\n.retry.t1/t2/t3")]
+        t_dlt[("agent.tasks.X\n.dlt")]
+        t_events[("agent.events")]
+        sr["Schema Registry"]
+    end
+
+    subgraph agents["Agent Consumer Groups"]
+        sum["Summarizer\nx3 instances"]
+        cls["Classifier\nx2 instances"]
+    end
+
+    subgraph adapters["Adapter Layer"]
+        adp_m["Mistral\nAdapter"]
+        adp_v["Vertex AI\nAdapter"]
+        adp_d["Dataiku\nAdapter"]
+        adp_s["Snowflake\nAdapter"]
+    end
+
+    subgraph platforms["External Platforms"]
+        mistral["Mistral AI"]
+        vertex["Vertex AI"]
+        dataiku["Dataiku"]
+        snowflake["Snowflake"]
+    end
+
+    subgraph observability["Observability"]
+        otel["OTel Collector"]
+        prom["Prometheus"]
+        jaeger["Jaeger / Tempo"]
+    end
+
+    vault["Vault\nSecret Manager"]
+    registry["Agent Registry"]
+
+    client -->|"A2A + mTLS"| orch
+    orch <--> registry
+    orch --> t_tasks
+    t_tasks --> sum
+    t_tasks --> cls
+    t_tasks --> adp_m
+    t_tasks --> adp_v
+    t_tasks --> adp_d
+    t_tasks --> adp_s
+    sum --> t_results
+    cls --> t_results
+    adp_m --> t_results
+    adp_v --> t_results
+    adp_d --> t_results
+    adp_s --> t_results
+    t_results --> orch
+    sum --> t_retry
+    cls --> t_retry
+    t_retry --> t_dlt
+    sum --> t_events
+    cls --> t_events
+    adp_m --> t_events
+
+    adp_m --> mistral
+    adp_v --> vertex
+    adp_d --> dataiku
+    adp_s --> snowflake
+
+    kafka_cluster --- sr
+
+    orch --- vault
+    sum --- vault
+    cls --- vault
+    adp_m --- vault
+
+    orch --> otel
+    sum --> otel
+    cls --> otel
+    adp_m --> otel
+    otel --> prom
+    otel --> jaeger
+
+    style kafka_cluster fill:#fff3e0,stroke:#f57c00
+    style agents fill:#e8f5e9,stroke:#388e3c
+    style observability fill:#f3e5f5,stroke:#7b1fa2
+    style adapters fill:#e3f2fd,stroke:#1976d2

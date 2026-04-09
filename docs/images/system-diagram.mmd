@@ -1,0 +1,32 @@
+flowchart TD
+    trigger["⚡ trigger.py\nCLI — publishes one article"]
+
+    subgraph kafka["Apache Kafka"]
+        raw[("articles.raw\n— pipeline entry point")]
+        enriched[("articles.enriched\n— final output")]
+        events[("agent.events\n— audit trail")]
+    end
+
+    subgraph agents["Agents"]
+        orch["🎯 Orchestrator\nKafka consumer + A2A client"]
+        sum["📝 Summarizer\nA2A server · port 8001\nKafka producer"]
+        cls["🏷️ Classifier\nA2A server · port 8002\nKafka producer"]
+    end
+
+    downstream["Downstream Systems"]
+
+    trigger -->|"PUBLISH {url, text}"| raw
+    raw -->|CONSUME| orch
+    orch -->|"A2A POST /tasks"| sum
+    orch -->|"A2A POST /tasks"| cls
+    sum -.->|"TaskResponse {summary, word_count}"| orch
+    cls -.->|"TaskResponse {tags}"| orch
+    sum -->|"PUBLISH audit event"| events
+    cls -->|"PUBLISH audit event"| events
+    orch -->|"PUBLISH enriched article"| enriched
+    enriched -->|CONSUME| downstream
+
+    style kafka fill:#fff3e0,stroke:#f57c00
+    style agents fill:#e8f5e9,stroke:#388e3c
+    style trigger fill:#e3f2fd,stroke:#1976d2
+    style downstream fill:#f3e5f5,stroke:#7b1fa2

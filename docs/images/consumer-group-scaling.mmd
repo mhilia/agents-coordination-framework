@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant K as Kafka Broker<br/>(3 partitions: P0 P1 P2)
+    participant S1 as Summarizer-1
+    participant S2 as Summarizer-2
+    participant S3 as Summarizer-3 (new)
+
+    Note over K,S2: Initial state — 2 consumers, 3 partitions
+    K-->>S1: P0, P1 assigned
+    K-->>S2: P2 assigned
+
+    Note over K,S3: Summarizer-3 joins consumer group
+    S3->>K: JoinGroup request
+
+    Note over K,S3: CooperativeStickyAssignor — incremental rebalance
+    K-->>S1: Revoke P1 only (keep P0)
+    Note over S1: S1 continues processing P0
+    Note over S2: S2 continues processing P2
+
+    K-->>S3: Assign P1
+    Note over K,S3: Final state — no processing gap
+
+    Note over S1,S3: Steady state
+    K-->>S1: P0
+    K-->>S2: P2
+    K-->>S3: P1

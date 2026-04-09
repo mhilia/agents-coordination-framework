@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant O as Orchestrator<br/>saga state: STARTED
+    participant S as Summarizer
+    participant C as Classifier
+    participant SW as Snowflake Adapter
+    participant DB as Saga State Store
+
+    Note over O,DB: Happy Path
+    O->>DB: saga_id=X, step=SUMMARIZE, state=RUNNING
+    O->>S: A2A POST /tasks {task_id, text}
+    S-->>O: TaskResponse {summary, word_count}
+    O->>DB: step=SUMMARIZE, state=DONE
+
+    O->>DB: step=CLASSIFY, state=RUNNING
+    O->>C: A2A POST /tasks {task_id, text}
+    C-->>O: TaskResponse {tags}
+    O->>DB: step=CLASSIFY, state=DONE
+
+    O->>DB: step=SNOWFLAKE_WRITE, state=RUNNING
+    O->>SW: A2A POST /tasks {task_id, enriched_article}
+    SW-->>O: TaskResponse {status: failed, error: timeout}
+
+    Note over O,DB: Compensation — reverse order
+    O->>DB: saga_id=X, state=COMPENSATING
+    O->>C: A2A POST /tasks/cancel {task_id}
+    Note over C: mark output invalid
+    C-->>O: cancelled
+
+    O->>S: A2A POST /tasks/cancel {task_id}
+    Note over S: mark output invalid
+    S-->>O: cancelled
+
+    O->>DB: saga_id=X, state=COMPENSATED
+    Note over O: return failed TaskResponse to client

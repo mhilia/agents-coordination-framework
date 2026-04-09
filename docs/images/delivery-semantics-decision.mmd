@@ -1,0 +1,24 @@
+flowchart TD
+    START(["What type of agent processing?"])
+
+    Q1{"Is processing\nnaturally idempotent?\ne.g. pure computation"}
+    Q2{"Can you add an\nidempotency key check?"}
+    Q3{"Does the agent write\nto external systems?\ne.g. DB, API side-effects"}
+
+    ALS["At-Least-Once\n+ no extra work needed\nconfig: enable.auto.commit=false"]
+    ALSi["At-Least-Once\n+ idempotency key store\nconfig: enable.auto.commit=false\nRedis dedup on task_id"]
+    EOS["Exactly-Once Semantics\nconfig: transactional.id\nisolation.level=read_committed\n~20% throughput cost"]
+    EOSW["EOS + Idempotency key\nfor external write\ncheck-then-act pattern\nbefore each external call"]
+
+    START --> Q1
+    Q1 -->|Yes| ALS
+    Q1 -->|No| Q2
+    Q2 -->|Yes| ALSi
+    Q2 -->|No| Q3
+    Q3 -->|No| EOS
+    Q3 -->|Yes| EOSW
+
+    style ALS fill:#e8f5e9,stroke:#388e3c
+    style ALSi fill:#e8f5e9,stroke:#388e3c
+    style EOS fill:#fff3e0,stroke:#f57c00
+    style EOSW fill:#fff3e0,stroke:#f57c00

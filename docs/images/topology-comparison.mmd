@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph orch["Orchestration — central conductor"]
+        direction TB
+        O["Orchestrator"]
+        S1["Summarizer"]
+        C1["Classifier"]
+        K1[("Kafka\ntopics")]
+        O -->|dispatch via A2A| S1
+        O -->|dispatch via A2A| C1
+        S1 -->|result| K1
+        C1 -->|result| K1
+        K1 -->|aggregate| O
+    end
+
+    subgraph choreo["Choreography — event-driven reactions"]
+        direction TB
+        E1[("Kafka\narticles.raw")]
+        A1["Agent A"]
+        E2[("Kafka\narticles.analyzed")]
+        A2["Agent B"]
+        E3[("Kafka\narticles.enriched")]
+        E1 -->|consumes| A1
+        A1 -->|publishes| E2
+        E2 -->|consumes| A2
+        A2 -->|publishes| E3
+    end
+
+    subgraph hier["Hierarchical — tiered delegation"]
+        direction TB
+        ROOT["Root Orchestrator"]
+        SO1["Sub-Orchestrator\nDocument AI"]
+        SO2["Sub-Orchestrator\nData Platform"]
+        L1["Summarizer"]
+        L2["Classifier"]
+        L3["Snowflake\nAdapter"]
+        L4["Dataiku\nAdapter"]
+        ROOT --> SO1
+        ROOT --> SO2
+        SO1 --> L1
+        SO1 --> L2
+        SO2 --> L3
+        SO2 --> L4
+    end

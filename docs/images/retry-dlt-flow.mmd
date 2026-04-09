@@ -1,0 +1,35 @@
+flowchart TD
+    IN[("agent.tasks.X\nmain topic")]
+    PROC["Agent Consumer\nprocess task"]
+    OK["agent.results\npublish result"]
+    ERR{"Error type?"}
+    NONRET["Non-retryable\nmalformed payload\nauth error"]
+    RET["Retryable\ntimeout · 5xx\nrate limit"]
+    R1[("agent.tasks.X.retry.t1\ndelay: 1s")]
+    R2[("agent.tasks.X.retry.t2\ndelay: 8s")]
+    R3[("agent.tasks.X.retry.t3\ndelay: 64s")]
+    DLT[("agent.tasks.X.dlt\ndead-letter topic")]
+    HUMAN["Human Review\nOps dashboard"]
+    REPLAY["Automated Replay\nafter 1h delay"]
+    SCHEMA["Schema Migration\nworkflow"]
+
+    IN --> PROC
+    PROC -->|success| OK
+    PROC -->|failure| ERR
+    ERR -->|non-retryable| NONRET
+    ERR -->|retryable attempt 1| R1
+    R1 -->|retry attempt 2| PROC
+    PROC -->|failure| R2
+    R2 -->|retry attempt 3| PROC
+    PROC -->|failure| R3
+    R3 -->|retry exhausted| DLT
+    NONRET --> DLT
+    DLT -->|auth/logic error| HUMAN
+    DLT -->|transient error| REPLAY
+    REPLAY -->|republish| IN
+    DLT -->|schema error| SCHEMA
+
+    style OK fill:#e8f5e9,stroke:#388e3c
+    style DLT fill:#ffebee,stroke:#c62828
+    style HUMAN fill:#fff3e0,stroke:#f57c00
+    style REPLAY fill:#e3f2fd,stroke:#1976d2

@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant O as Orchestrator<br/>span: root
+    participant KP as Kafka Producer
+    participant KT as Kafka Topic<br/>agent.tasks.summarizer
+    participant KC as Kafka Consumer<br/>(Summarizer)
+    participant S as Summarizer<br/>span: child-1
+    participant MA as Mistral Adapter<br/>span: child-2
+
+    Note over O: Create root span<br/>trace_id=abc123, span_id=0001
+    O->>KP: produce message
+    Note over KP: inject headers:<br/>traceparent: 00-abc123-0001-01
+    KP->>KT: message + trace headers
+
+    KT->>KC: deliver message
+    Note over KC: extract traceparent header<br/>create child span<br/>trace_id=abc123, span_id=0002<br/>parent_span_id=0001
+
+    KC->>S: process task
+    Note over S: child span active<br/>span_id=0002
+
+    S->>MA: A2A POST /tasks<br/>W3C traceparent header
+    Note over MA: child span<br/>span_id=0003, parent=0002
+
+    MA-->>S: TaskResponse
+    Note over MA: close span 0003
+
+    S->>KP: produce result
+    Note over KP: inject headers:<br/>traceparent: 00-abc123-0002-01
+
+    KP->>O: result message
+    Note over O: continue root span<br/>full trace: 0001 → 0002 → 0003

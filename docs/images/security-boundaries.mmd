@@ -1,0 +1,53 @@
+flowchart TD
+    subgraph internet["Public Internet"]
+        ext_mistral["Mistral AI API"]
+        ext_vertex["Vertex AI API"]
+        ext_dataiku["Dataiku DSS"]
+        ext_snowflake["Snowflake Cortex"]
+    end
+
+    subgraph dmz["Adapter Layer — DMZ\nmTLS outbound · API Key auth · Vault secrets"]
+        adp_m["Mistral Adapter\nport 8010"]
+        adp_v["Vertex Adapter\nport 8011"]
+        adp_d["Dataiku Adapter\nport 8012"]
+        adp_s["Snowflake Adapter\nport 8013"]
+    end
+
+    subgraph inner["Agent Mesh — Internal Network\nmTLS everywhere · JWT auth · Kafka ACLs"]
+        orch["Orchestrator\nJWT issuer: internal-ca"]
+        sum["Summarizer\nconsumer-group: summarizer-group"]
+        cls["Classifier\nconsumer-group: classifier-group"]
+        kafka[("Kafka Cluster\nSASL/OAUTHBEARER\nACLs per principal\nTLS in-transit")]
+        vault["Vault\nKubernetes auth\nDynamic secrets"]
+        registry["Agent Registry\nA2A card store"]
+    end
+
+    client["Client\nA2A POST /tasks\nmTLS + JWT Bearer"]
+
+    client -->|"mTLS + JWT"| orch
+    orch <-->|"mTLS + JWT"| sum
+    orch <-->|"mTLS + JWT"| cls
+    orch <-->|"SASL + ACL"| kafka
+    sum <-->|"SASL + ACL"| kafka
+    cls <-->|"SASL + ACL"| kafka
+    adp_m <-->|"SASL + ACL"| kafka
+    adp_v <-->|"SASL + ACL"| kafka
+    adp_d <-->|"SASL + ACL"| kafka
+    adp_s <-->|"SASL + ACL"| kafka
+    orch --- vault
+    sum --- vault
+    cls --- vault
+    adp_m --- vault
+    adp_v --- vault
+    adp_d --- vault
+    adp_s --- vault
+    orch <--> registry
+
+    adp_m -->|"API Key (from Vault)"| ext_mistral
+    adp_v -->|"OAuth (from Vault)"| ext_vertex
+    adp_d -->|"API Key (from Vault)"| ext_dataiku
+    adp_s -->|"PAT (from Vault)"| ext_snowflake
+
+    style internet fill:#ffebee,stroke:#c62828
+    style dmz fill:#fff8e1,stroke:#f9a825
+    style inner fill:#e8f5e9,stroke:#2e7d32

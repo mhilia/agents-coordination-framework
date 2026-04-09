@@ -1,0 +1,26 @@
+classDiagram
+    class TaskInput {
+        +str text
+    }
+    class TaskRequest {
+        +str id
+        +TaskInput input
+    }
+    class TaskResponse {
+        +str id
+        +str status
+        +dict result
+        +str error
+    }
+    class AgentCard {
+        +str name
+        +str description
+        +str version
+        +str url
+        +list~str~ skills
+        +dict input_schema
+        +dict output_schema
+    }
+
+    TaskRequest *-- TaskInput : contains
+    note for TaskResponse "status: submitted | working\n         completed | failed"

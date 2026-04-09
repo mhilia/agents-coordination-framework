@@ -1,0 +1,53 @@
+flowchart TD
+    trigger["trigger / event source"]
+
+    subgraph kafka["Apache Kafka"]
+        t_in[("agent.tasks.X")]
+        t_out[("agent.results")]
+        t_ev[("agent.events")]
+    end
+
+    orch["Orchestrator\nKafka consumer + A2A client"]
+    reg["Agent Registry\nskill → agent URL"]
+
+    subgraph adapters["Adapter Layer"]
+        adp_m["Mistral Adapter :8010\nA2A server + Kafka"]
+        adp_v["Vertex Adapter :8011\nA2A server + Kafka"]
+        adp_d["Dataiku Adapter :8012\nA2A server + Kafka"]
+        adp_s["Snowflake Adapter :8013\nA2A server + Kafka"]
+    end
+
+    mistral["Mistral AI\nAgents API"]
+    vertex["Vertex AI\nAgent Engine"]
+    dataiku["Dataiku DSS\nScenarios API"]
+    snowflake["Snowflake Cortex\nAgents API"]
+
+    trigger --> t_in
+    t_in --> orch
+    orch <--> reg
+    orch --> t_in
+
+    t_in --> adp_m
+    t_in --> adp_v
+    t_in --> adp_d
+    t_in --> adp_s
+
+    adp_m --> t_out
+    adp_v --> t_out
+    adp_d --> t_out
+    adp_s --> t_out
+
+    adp_m --> t_ev
+    adp_v --> t_ev
+    adp_d --> t_ev
+    adp_s --> t_ev
+
+    t_out --> orch
+
+    adp_m <--> mistral
+    adp_v <--> vertex
+    adp_d <--> dataiku
+    adp_s <--> snowflake
+
+    style kafka fill:#fff3e0,stroke:#f57c00
+    style adapters fill:#e8f5e9,stroke:#388e3c

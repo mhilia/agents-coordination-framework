@@ -1,0 +1,8 @@
+flowchart LR
+    s1["1️⃣ Trigger\ntrigger.py publishes\narticle to Kafka"]
+    s2["2️⃣ Orchestrator\nconsumes from\narticles.raw"]
+    s3["3️⃣ Summarize\nA2A call to\nSummarizer :8001"]
+    s4["4️⃣ Classify\nA2A call to\nClassifier :8002"]
+    s5["5️⃣ Merge & Publish\nenriched article\nto Kafka"]
+
+    s1 --> s2 --> s3 --> s4 --> s5

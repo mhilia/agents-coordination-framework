@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant A as Adapter<br/>(any platform)
+    participant R as Agent Registry
+    participant O as Orchestrator
+    participant K as Kafka
+
+    Note over A,K: Startup — Agent Registration
+    A->>R: POST /agents  (Agent Card payload)
+    R-->>A: 201 registered
+
+    Note over O,K: Runtime — Task Dispatch
+    O->>R: GET /agents?skill=summarize
+    R-->>O: [{ name, url, skills, input_schema }]
+
+    O->>K: PUBLISH to agent.tasks.mistral-summarizer<br/>{ task_id, skill, input }
+
+    K->>A: CONSUME task message
+    A->>A: call platform API<br/>(Mistral / Vertex / Dataiku / Snowflake)
+    A->>K: PUBLISH to agent.results<br/>{ task_id, agent, result }
+    A->>K: PUBLISH to agent.events<br/>{ task_id, agent, status }
+
+    O->>K: CONSUME from agent.results<br/>(filter by task_id)

@@ -1,0 +1,23 @@
+flowchart LR
+    subgraph adapter["Adapter  (one per platform)"]
+        card["GET /.well-known/agent-card.json\nA2A identity + skills"]
+        tasks["POST /tasks\nA2A task endpoint\nJSON-RPC 2.0"]
+        consumer["Kafka Consumer\nagent.tasks.{name}"]
+        producer["Kafka Producer\nagent.results\nagent.events"]
+        client["Platform API Client\nMistral / Vertex / Dataiku / Snowflake"]
+    end
+
+    kafka_in[("Kafka\nagent.tasks.{name}")]
+    kafka_out[("Kafka\nagent.results\nagent.events")]
+    platform["External Platform\nAPI endpoint"]
+
+    orch_direct["Orchestrator\n(direct A2A call)"]
+    orch_async["Orchestrator\n(async via Kafka)"]
+
+    kafka_in --> consumer --> client --> platform
+    platform --> client --> producer --> kafka_out
+
+    orch_direct -->|POST /tasks| tasks --> client
+    orch_async -->|PUBLISH| kafka_in
+
+    style adapter fill:#e8f5e9,stroke:#388e3c
